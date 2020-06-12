@@ -21,18 +21,21 @@ import PyPDF2
 
 class PlotGen:
     #creating structure
-    def __init__(self, file_netlist_modifier, plot_editor_excel,product_name):
+    def __init__(self, file_netlist_modifier, plot_editor_excel):
         #creating member variables
         self.dir_cur = os.getcwd()
-        self.output_folder_name = "output{}_"+product_name
-        self.dir_output_path = os.path.join(self.dir_cur, self.output_folder_name)
+        self.product_name = ""
+        self.output_folder_name = ""
+        #self.dir_output_path = os.path.join(self.dir_cur, self.output_folder_name)
         self.dir_netlist = os.path.join(self.dir_cur, "Netlist")
-        self.dir_out_netlist = os.path.join(self.dir_output_path, "netlist_files")
-        self.dir_out_plot = os.path.join(self.dir_output_path, "output_plots")
+        self.dir_out_netlist = ""
+        self.dir_out_plot = ""
         self.file_netlist_modifier = file_netlist_modifier
         self.file_plot_editor = plot_editor_excel
         self.xlrd_plot_modifier = xlrd.open_workbook(plot_editor_excel)
         self.write_plot_modifier = openpyxl.load_workbook(plot_editor_excel)
+        self.sim_writeSheet = self.write_plot_modifier["Sheet5"]
+        self.excel_value = self.xlrd_plot_modifier.sheet_by_index(4)
         self.dict_simulated_files_data = {}
         self.dict_table_files_data = {}
         self.dict_plot_labels = {}
@@ -45,77 +48,140 @@ class PlotGen:
         self.load_search_data()
         self.load_data_sheet_value()
         self.read_excel_sheet()
-        self.__create_folders()
+        #self.create_folders()
 
 
 
-    def __create_folders(self):
-        output_folder = self.dir_output_path
+    def create_folders(self):
+        output_folder = os.path.join(self.dir_cur,  "output{}_"+self.product_name)
         counter = 0
-        while os.path.isfile(output_folder.format(counter)):
-            counter += 1
-            output_folder = output_folder.format(counter)
-            #print("Previous output exist--> clearing and generating new file")
-            #shutil.rmtree(self.dir_output_path)
+        output_folder.format(counter)
+        while os.path.exists(output_folder.format(counter)):
+           counter += 1
+        output_folder = output_folder.format(counter)
+        self.output_folder_name = output_folder
+        self.dir_out_plot = os.path.join(output_folder, "output_plots")
+        self.dir_out_netlist = os.path.join(output_folder, "netlist_files")
         # create dir for netlistfile
-        self.dir_out_plot = os.path.join(self.dir_output_path, "output_plots")
-        self.dir_out_netlist = os.path.join(self.dir_output_path, "netlist_files")
         os.makedirs(self.dir_out_netlist, mode=0o777,exist_ok=True)
         # create dir for plots
         os.makedirs(self.dir_out_plot, mode=0o777,exist_ok=True)
 
+    # def excel_openCheck(self):
+    #     if self.file_plot_editor
+    #     self.write_plot_modifier.close()
+
+    def read_model_lib(self,product_name):
+        for rows in range(1, self.sim_writeSheet.max_row):
+            if product_name == self.excel_value.cell_value(rows, 1):
+                with open(self.dict_devices[product_name]["location"]) as model_file:
+                    model_file_lines = model_file.readlines()
+                    header_index = 0
+                    product_index = 0
+                    for line_num in range(0, len(model_file_lines)):
+                        if "Product" in model_file_lines[line_num] and "L2-model name" in model_file_lines[line_num] and "L3-model name" in model_file_lines[line_num]:
+                            header_index = line_num
+                            break
+                    lines_to_read = header_index
+                    while "End SIMPLIS Encryption" not in model_file_lines[lines_to_read]:
+                        if product_name in model_file_lines[lines_to_read]:
+                            product_index = lines_to_read
+                            break
+                        lines_to_read += 1
+                    model_des = model_file_lines[product_index].split()
+                    print(model_des)
+                    product_name = model_des[1]
+                    voltage_class = model_des[3]
+                    current_class = model_des[4]
+                    model_name = model_des[7]
+                    model_name_column = self.sim_writeSheet.cell(rows + 1, 4)
+                    model_name_column.value = model_name
+                    voltage_class_column = self.sim_writeSheet.cell(rows + 1, 6)
+                    voltage_class_column.value = int(voltage_class)
+                    current_class_column = self.sim_writeSheet.cell(rows + 1, 5)
+                    current_class_column.value = int(current_class)
+                    library_path = self.dict_devices[product_name]["location"]
+                    library_name = library_path.split("\\")
+                    library = library_name[len(library_name) - 1]
+                    library_column = self.sim_writeSheet.cell(rows + 1, 3)
+                    library_column.value = library
+                    print(product_name, voltage_class, current_class, model_name,library) # write back these printed values inside the excel
+                    self.write_plot_modifier.save(self.file_plot_editor)
+
+    def simulate_data_product(self):
+        for product_name in self.dict_devices.keys():
+            if product_name == "IGC11T120X8L":      # SIGC100T65R3EA #IGC11T120X8L
+                self.product_name = product_name
+                self.create_folders()
+                # self.output_folder_name = output_folder
+                # self.dir_out_plot = os.path.join(output_folder, "output_plots")
+                # self.dir_out_netlist = os.path.join(output_folder, "netlist_files")
+                #self.read_model_lib(product_name)
+                self.generate_net_files()
+                self.load_simulation_data()
+                self.generate_plot()
+                self.load_table_data()
+                self._generate_table(product_name)
+                self._generate_pdf_report()
+
     def read_excel_sheet(self):
-        excel_value = self.xlrd_plot_modifier.sheet_by_index(4)
-        for rows in range(3, excel_value.nrows):
-            product_name = excel_value.cell_value(rows,1)
+        for rows in range(3, self.excel_value.nrows):
+            product_name = self.excel_value.cell_value(rows,1)
             self.dict_devices[product_name] = {}
-            self.dict_devices[product_name]["library_name"] = excel_value.cell_value(rows, 2)
-            self.dict_devices[product_name]["model_name"] = excel_value.cell_value(rows, 3)
-            self.dict_devices[product_name]["current_class"] = excel_value.cell_value(rows,4)
-            self.dict_devices[product_name]["voltage_class"] = excel_value.cell_value(rows, 5)
+            self.dict_devices[product_name]["library_name"] = self.excel_value.cell_value(rows, 2)
+            self.dict_devices[product_name]["model_name"] = self.excel_value.cell_value(rows, 3)
+            self.dict_devices[product_name]["current_class"] = self.excel_value.cell_value(rows,4)
+            self.dict_devices[product_name]["voltage_class"] = self.excel_value.cell_value(rows, 5)
             self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"] = {}
-            self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["IC"] = excel_value.cell_value(rows,6)
+            self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["IC"] = self.excel_value.cell_value(rows,6)
             self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["25°C"]={}
-            self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["25°C"]["VCESat/VF_ref"] = excel_value.cell_value(rows,7)
-            self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["25°C"]["VCESat/VF_sim"] = excel_value.cell_value(rows,8)
-            self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["25°C"]["Error"] = excel_value.cell_value(rows,9)
+            self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["25°C"]["VCESat/VF_ref"] = self.excel_value.cell_value(rows,7)
+            self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["25°C"]["VCESat/VF_sim"] = self.excel_value.cell_value(rows,8)
+            self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["25°C"]["Error"] = self.excel_value.cell_value(rows,9)
             self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["175°C"] = {}
-            self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["175°C"]["VCESat/VF_ref"] = excel_value.cell_value(
+            self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["175°C"]["VCESat/VF_ref"] = self.excel_value.cell_value(
                 rows, 10)
-            self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["175°C"]["VCESat/VF_sim"] = excel_value.cell_value(
+            self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["175°C"]["VCESat/VF_sim"] = self.excel_value.cell_value(
                 rows, 11)
-            self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["175°C"]["Error"] = excel_value.cell_value(rows, 12)
+            self.dict_devices[product_name]["output_characteristics/Diode_Forward_characteristics"]["175°C"]["Error"] = self.excel_value.cell_value(rows, 12)
             self.dict_devices[product_name]["Transfer_characteristics"] = {}
-            self.dict_devices[product_name]["Transfer_characteristics"]["IC"] = excel_value.cell_value(rows, 13)
+            self.dict_devices[product_name]["Transfer_characteristics"]["IC"] = self.excel_value.cell_value(rows, 13)
             self.dict_devices[product_name]["Transfer_characteristics"]["175C"] = {}
-            self.dict_devices[product_name]["Transfer_characteristics"]["175C"]["VGEth_ref"] = excel_value.cell_value(
+            self.dict_devices[product_name]["Transfer_characteristics"]["175C"]["VGEth_ref"] = self.excel_value.cell_value(
                 rows, 14)
-            self.dict_devices[product_name]["Transfer_characteristics"]["175C"]["VGEth_sim"] = excel_value.cell_value(
+            self.dict_devices[product_name]["Transfer_characteristics"]["175C"]["VGEth_sim"] = self.excel_value.cell_value(
                 rows, 15)
-            self.dict_devices[product_name]["Transfer_characteristics"]["175C"]["Error"] = excel_value.cell_value(rows, 16)
+            self.dict_devices[product_name]["Transfer_characteristics"]["175C"]["Error"] = self.excel_value.cell_value(rows, 16)
             self.dict_devices[product_name]["Capacitances"] = {}
-            self.dict_devices[product_name]["Capacitances"]["VCE"] = excel_value.cell_value(rows, 17)
+            self.dict_devices[product_name]["Capacitances"]["VCE"] = self.excel_value.cell_value(rows, 17)
             self.dict_devices[product_name]["Capacitances"]["Cies"] ={}
-            self.dict_devices[product_name]["Capacitances"]["Cies"]["cies_ref"] = excel_value.cell_value(
+            self.dict_devices[product_name]["Capacitances"]["Cies"]["cies_ref"] = self.excel_value.cell_value(
                 rows, 18)
-            self.dict_devices[product_name]["Capacitances"]["Cies"]["cies_sim"] = excel_value.cell_value(
+            self.dict_devices[product_name]["Capacitances"]["Cies"]["cies_sim"] = self.excel_value.cell_value(
                 rows, 19)
-            self.dict_devices[product_name]["Capacitances"]["Cies"]["Error"] = excel_value.cell_value(
+            self.dict_devices[product_name]["Capacitances"]["Cies"]["Error"] = self.excel_value.cell_value(
                 rows, 20)
             self.dict_devices[product_name]["Capacitances"]["Crss"] = {}
-            self.dict_devices[product_name]["Capacitances"]["Crss"]["crss_ref"] = excel_value.cell_value(
+            self.dict_devices[product_name]["Capacitances"]["Crss"]["crss_ref"] = self.excel_value.cell_value(
                 rows, 21)
-            self.dict_devices[product_name]["Capacitances"]["Crss"]["crss_sim"] = excel_value.cell_value(
+            self.dict_devices[product_name]["Capacitances"]["Crss"]["crss_sim"] = self.excel_value.cell_value(
                 rows, 22)
-            self.dict_devices[product_name]["Capacitances"]["Crss"]["Error"] = excel_value.cell_value(
+            self.dict_devices[product_name]["Capacitances"]["Crss"]["Error"] = self.excel_value.cell_value(
                 rows, 23)
             self.dict_devices[product_name]["Capacitances"]["Coss"] ={}
-            self.dict_devices[product_name]["Capacitances"]["Coss"]["coss_ref"] = excel_value.cell_value(
+            self.dict_devices[product_name]["Capacitances"]["Coss"]["coss_ref"] = self.excel_value.cell_value(
                 rows, 24)
-            self.dict_devices[product_name]["Capacitances"]["Coss"]["coss_sim"] = excel_value.cell_value(
+            self.dict_devices[product_name]["Capacitances"]["Coss"]["coss_sim"] = self.excel_value.cell_value(
                 rows, 25)
-            self.dict_devices[product_name]["Capacitances"]["Coss"]["Error"] = excel_value.cell_value(
+            self.dict_devices[product_name]["Capacitances"]["Coss"]["Error"] = self.excel_value.cell_value(
                 rows, 26)
+            self.dict_devices[product_name]["location"] = self.excel_value.cell_value(
+                rows, 27)
+            self.dict_devices[product_name]["Data_sheet_location"] = self.excel_value.cell_value(
+                rows, 28)
+            self.dict_devices[product_name]["high_temp"] = self.excel_value.cell_value(
+                rows, 29)
+
 
 
 
@@ -159,7 +225,7 @@ class PlotGen:
         with open(self.file_netlist_modifier) as netlist_file:
             netlist_file_lines = netlist_file.readlines()
         user_input = {}
-        user_input["location_1"] =  netlist_file_lines[4].split('=')[1].strip()
+        user_input["location_1"] = self.dict_devices[product_name]["location"]
         user_input["location_2"] = netlist_file_lines[5].split('=')[1].strip()
         user_input["igbt_name"] = self.dict_devices[product_name]["model_name"]
         user_input["diode_name"] = netlist_file_lines[12].split('=')[1].strip()
@@ -169,7 +235,7 @@ class PlotGen:
     def __update_file_parameters(self, product_name):
         user_input = self.get_user_input(product_name)
         for files in os.listdir(self.dir_netlist):
-            if files.endswith('.net' and '.sxscr'):
+            if files.endswith('.net') or files.endswith('.sxscr'):
                 with open(os.path.join(self.dir_netlist, files)) as net_file:
                     net_file_lines = net_file.readlines()
                     for lines in range(0, len(net_file_lines)):
@@ -182,15 +248,21 @@ class PlotGen:
                         if "<<Diode_Name>>" in net_file_lines[lines]:
                             net_file_lines[lines] = net_file_lines[lines].replace("<<Diode_Name>>", user_input["diode_name"])
                         if "<<output>>" in net_file_lines[lines]:
-                            net_file_lines[lines] = net_file_lines[lines].replace("<<output>>", user_input["diode_name"])
+                            output_folder = self.output_folder_name
+                            folder_name = output_folder.split("/")
+                            output = folder_name[len(folder_name) - 1]
+                            net_file_lines[lines] = net_file_lines[lines].replace("<<output>>", output)
+                        if "<<high_temp>>" in net_file_lines[lines]:
+                            high_temp =  str(self.dict_devices[product_name]["high_temp"])
+                            net_file_lines[lines] = net_file_lines[lines].replace("<<high_temp>>", high_temp)
 
                 with open(os.path.join(self.dir_out_netlist, files), 'w') as output_file:
                     output_file.writelines(net_file_lines)
 
     def generate_net_files(self):
-        self.__update_file_parameters("IGC11T120X8L")
+        self.__update_file_parameters(self.product_name)
         print('Started running simulations......Do some meditation')
-        os.system("sim2 " + os.path.join(self.dir_netlist, "Script_all_simulations.sxscr"))
+        os.system("sim2 " + os.path.join(self.dir_out_netlist, "Script_all_simulations.sxscr"))
         print('Fininshed running simulations')
         # print(os.path.join(netlist_dir,"Script_all_simulations.sxscr"))
 
@@ -216,26 +288,26 @@ class PlotGen:
                     x1_value = self.dict_plot_labels[files]["x1value"]
                     self.dict_table_labels[plot_type + ".png"]["2:1 value"] = y1_value
                     self.dict_table_labels[plot_type + ".png"]["2:2 value"] = y1_value
-                    sim_writeSheet = self.write_plot_modifier["Sheet5"]
-                    for rows in range(1, sim_writeSheet.max_row):
-                        excel_value = self.xlrd_plot_modifier.sheet_by_index(4)
-                        if product_name == excel_value.cell_value(rows,1):
+                    for rows in range(1, self.sim_writeSheet.max_row):
+                        if product_name == self.excel_value.cell_value(rows,1):
                             if "output_25C.txt" in files:
-                                sim_data = sim_writeSheet.cell(rows+1,9)
+                                self.dict_plot_labels[files]["legend"] = "TJ=25.0°C"
+                                sim_data = self.sim_writeSheet.cell(rows+1,9)
                                 sim_data.value = float("{:.2f}".format(x1_value))
-                                data_sheet = excel_value.cell_value(rows, 7)
+                                data_sheet = self.excel_value.cell_value(rows, 7)
                                 self.dict_table_labels[plot_type + ".png"]["3:1 value"] = data_sheet
                                 self.dict_table_labels[plot_type+".png"]["4:1 value"] = sim_data.value
-                                error_data = sim_writeSheet.cell(rows + 1, 10)
+                                error_data = self.sim_writeSheet.cell(rows + 1, 10)
                                 error_data.value = float("{:.2f}".format(float((sim_data.value-data_sheet)/sim_data.value)*100))
                                 self.dict_table_labels[plot_type+".png"]["5:1 value"] = error_data.value
                             if "output_175C.txt" in files:
-                                sim_data = sim_writeSheet.cell(rows + 1, 12)
+                                self.dict_plot_labels[files]["legend"] = "TJ="+str(self.dict_devices[product_name]["high_temp"])+"°C"
+                                sim_data = self.sim_writeSheet.cell(rows + 1, 12)
                                 sim_data.value = float("{:.2f}".format(x1_value))
-                                data_sheet = excel_value.cell_value(rows,10)
+                                data_sheet = self.excel_value.cell_value(rows,10)
                                 self.dict_table_labels[plot_type + ".png"]["3:2 value"] = data_sheet
                                 self.dict_table_labels[plot_type+".png"]["4:2 value"] = sim_data.value
-                                error_data = sim_writeSheet.cell(rows+1,13)
+                                error_data = self.sim_writeSheet.cell(rows+1,13)
                                 error_data.value = float("{:.2f}".format(float((sim_data.value-data_sheet)/sim_data.value)*100))
                                 self.dict_table_labels[plot_type+".png"]["5:2 value"] = error_data.value
                             self.write_plot_modifier.save(self.file_plot_editor)
@@ -262,55 +334,53 @@ class PlotGen:
                     self.dict_table_labels[plot_type + ".png"]["2:1 value"] = x1_value
                     self.dict_table_labels[plot_type + ".png"]["2:2 value"] = x1_value
                     self.dict_table_labels[plot_type + ".png"]["2:3 value"] = x1_value
-                    sim_writeSheet = self.write_plot_modifier["Sheet5"]
-                    for rows in range(1, sim_writeSheet.max_row):
-                        excel_value = self.xlrd_plot_modifier.sheet_by_index(4)
-                        if product_name == excel_value.cell_value(rows, 1):
+                    for rows in range(1, self.sim_writeSheet.max_row):
+                        if product_name == self.excel_value.cell_value(rows, 1):
                             if "data_cies.txt" in files:
-                                sim_data = sim_writeSheet.cell(rows + 1, 20)
+                                sim_data = self.sim_writeSheet.cell(rows + 1, 20)
                                 sim_data.value = float("{:.2e}".format(y1_value))
-                                data_sheet = excel_value.cell_value(rows, 18)
-                                self.dict_table_labels[plot_type + ".png"]["3:1 value"] = excel_value.cell_value(
+                                data_sheet = self.excel_value.cell_value(rows, 18)
+                                self.dict_table_labels[plot_type + ".png"]["3:1 value"] = self.excel_value.cell_value(
                 rows, 18)
                                 self.dict_table_labels[plot_type+".png"]["4:1 value"] = sim_data.value
                                 self.write_plot_modifier.save(self.file_plot_editor)
                                 if not data_sheet == "NA":
-                                    error_data = sim_writeSheet.cell(rows + 1, 21)
+                                    error_data = self.sim_writeSheet.cell(rows + 1, 21)
                                     error_data.value = float("{:.2f}".format(
                                         float((sim_data.value-data_sheet)/sim_data.value) * 100))
                                     self.dict_table_labels[plot_type + ".png"]["5:1 value"] = error_data.value
                                 else:
                                     self.dict_table_labels[plot_type + ".png"]["5:1 value"] = "NA"
                             if "data_crss.txt" in files:
-                                sim_data = sim_writeSheet.cell(rows + 1, 23)
+                                sim_data = self.sim_writeSheet.cell(rows + 1, 23)
                                 sim_data.value = float("{:.2e}".format(y1_value))
-                                data_sheet = excel_value.cell_value(rows, 21)
-                                self.dict_table_labels[plot_type + ".png"]["3:2 value"] = excel_value.cell_value(
+                                data_sheet = self.excel_value.cell_value(rows, 21)
+                                self.dict_table_labels[plot_type + ".png"]["3:2 value"] = self.excel_value.cell_value(
                 rows, 21)
                                 self.dict_table_labels[plot_type+".png"]["4:2 value"] = sim_data.value
                                 self.write_plot_modifier.save(self.file_plot_editor)
                                 if not data_sheet == "NA":
-                                    error_data = sim_writeSheet.cell(rows + 1, 24)
+                                    error_data = self.sim_writeSheet.cell(rows + 1, 24)
                                     error_data.value = float("{:.2f}".format(
                                         float((sim_data.value-data_sheet)/sim_data.value) * 100))
                                     self.dict_table_labels[plot_type + ".png"]["5:2 value"] = error_data.value
                                 else:
                                     self.dict_table_labels[plot_type + ".png"]["5:2 value"] = "NA"
                             if "data_coss.txt" in files:
-                                sim_data = sim_writeSheet.cell(rows + 1, 26)
+                                sim_data = self.sim_writeSheet.cell(rows + 1, 26)
                                 sim_data.value = float("{:.2e}".format(y1_value))
-                                data_sheet = excel_value.cell_value(rows, 24)
-                                self.dict_table_labels[plot_type + ".png"]["3:3 value"] = excel_value.cell_value(
+                                data_sheet = self.excel_value.cell_value(rows, 24)
+                                self.dict_table_labels[plot_type + ".png"]["3:3 value"] = self.excel_value.cell_value(
                 rows, 24)
                                 self.dict_table_labels[plot_type+".png"]["4:3 value"] = sim_data.value
                                 self.write_plot_modifier.save(self.file_plot_editor)
                                 if not data_sheet == "NA":
-                                    error_data = sim_writeSheet.cell(rows + 1, 27)
+                                    error_data = self.sim_writeSheet.cell(rows + 1, 27)
                                     error_data.value = float("{:.2f}".format(
                                         float((sim_data.value-data_sheet)/sim_data.value) * 100))
                                     self.dict_table_labels[plot_type + ".png"]["5:3 value"] = error_data.value
                                 else:
-                                    sim_writeSheet.cell(rows + 1, 27).value = "NA"
+                                    self.sim_writeSheet.cell(rows + 1, 27).value = "NA"
                                     self.dict_table_labels[plot_type + ".png"]["5:3 value"] = "NA"
                             self.write_plot_modifier.save(self.file_plot_editor)
 
@@ -326,17 +396,15 @@ class PlotGen:
                                       self.dict_simulated_files_data[plot_type][files]["x_axis"])
                         x1_value = self.dict_plot_labels[files]["x1value"]
                         self.dict_table_labels[plot_type + ".png"]["2:1 value"] = y1_value
-                        sim_writeSheet = self.write_plot_modifier["Sheet5"]
-                        for rows in range(1, sim_writeSheet.max_row):
-                            excel_value = self.xlrd_plot_modifier.sheet_by_index(4)
-                            if product_name == excel_value.cell_value(rows, 1):
-                                sim_data = sim_writeSheet.cell(rows + 1, 16)
+                        for rows in range(1, self.sim_writeSheet.max_row):
+                            if product_name == self.excel_value.cell_value(rows, 1):
+                                sim_data = self.sim_writeSheet.cell(rows + 1, 16)
                                 sim_data.value = float("{:.2f}".format(x1_value))
-                                data_sheet = excel_value.cell_value(rows, 14)
-                                self.dict_table_labels[plot_type + ".png"]["3:1 value"] = excel_value.cell_value(
+                                data_sheet = self.excel_value.cell_value(rows, 14)
+                                self.dict_table_labels[plot_type + ".png"]["3:1 value"] = self.excel_value.cell_value(
                 rows, 14)
                                 self.dict_table_labels[plot_type+".png"]["4:1 value"] = sim_data.value
-                                error_data = sim_writeSheet.cell(rows + 1, 17)
+                                error_data = self.sim_writeSheet.cell(rows + 1, 17)
                                 error_data.value = float("{:.2f}".format(
                                     float((sim_data.value-data_sheet)/sim_data.value) * 100))
                                 self.dict_table_labels[plot_type + ".png"]["5:1 value"] = error_data.value
@@ -402,7 +470,7 @@ class PlotGen:
                     for itr in range(1, len(raw_data)):
                         self.dict_simulated_files_data[file_index][files]["x_axis"].append(float(raw_data[itr].split()[index_x].strip()))
                         self.dict_simulated_files_data[file_index][files]["y_axis"].append(float(raw_data[itr].split()[index_y].strip()))
-        self.find_x1_y1_value("IGC11T120X8L")
+        self.find_x1_y1_value(self.product_name)
         self.modify_cies_data()
 
 
@@ -454,7 +522,7 @@ class PlotGen:
                     plt.axhline(labels["y1value"], color="k", linestyle="--")
                     plt.axvline(labels["x1value"], color="k", linestyle="--")
                     plt.xlim(left=0)
-                    plt.ylim(10E-13, 10E-9)
+                    plt.ylim(10E-13, 10E-8)
 
                 # plt.ylim(labels["ymin"], labels["ymax"])
 
@@ -466,22 +534,16 @@ class PlotGen:
 
     def _generate_table(self,product_name):
 
-        product = self.dict_devices[product_name]
+        product = self.product_name
         model = self.dict_devices[product_name]["model_name"]
+        library = self.dict_devices[product_name]["library_name"]
         voltage = self.dict_devices[product_name]["voltage_class"]
         current = self.dict_devices[product_name]["current_class"]
-
         fig = go.Figure(data=[go.Table(
             columnwidth=[250, 400],
-            # header=dict(values=['Description'],
-            #             line_color='black',
-            #             fill_color='lightgray',
-            #             align='center',
-            #             font=dict(color='black', size=24),
-            #             height=60),
             cells=dict(values=[
-                ['Product name', 'Model name', 'Voltage class(V)', 'Current class(A)', 'Model level', 'Model type'],
-                [product, model, voltage, current, '2', 'DAMBI']],  # get model level and type as input from user
+                ['Product name', 'Model name', 'Model library', 'Voltage class(V)', 'Current class(A)', 'Model level', 'Model type'],
+                [product, model, library, voltage, current, '2', 'NON-DAMBI']], # get model level and type as input from user
                 line_color='black',
                 fill_color='white',
                 align='center',
@@ -605,12 +667,13 @@ class PlotGen:
 
     def _generate_pdf_report(self):
 
-        pdf_filename = 'Baredie_report{}.pdf'
+        pdf_filename = self.product_name+'_Baredie_report{}.pdf'
         counter = 0
         while os.path.isfile(pdf_filename.format(counter)):
             counter += 1
         pdf_filename = pdf_filename.format(counter)
-        pdf = canvas.Canvas(pdf_filename)
+        pdf_folder = os.path.join(self.dir_out_plot, pdf_filename)
+        pdf = canvas.Canvas(pdf_folder)
         logo = 'infineon_logo.png'
         front_page = 'frontpage.png'
         array_sort = ["transfer.png","output.png","data.png"]
@@ -626,26 +689,27 @@ class PlotGen:
                     pdfmetrics.registerFont(
                         TTFont('source-bold', 'SourceSansPro-Bold.ttf')
                     )
-                    pdf.setFont("source-bold", 28)
+                    pdf.setFont("source", 28)
                     pdf.drawCentredString(290, 740, "Compact model")
-                    pdf.drawString(190, 705, "calibration report")
+                    pdf.drawString(185, 705, "calibration report")
                     pdf.setFont("source", 24)
-                    pdf.drawCentredString(290, 520, "Device: IGC11T120X12L, L2")
+
+                    pdf.drawCentredString(290, 520, "Device: "+self.product_name+", L2")
                     #pdf.drawCentredString(270, 560, "Diode: IDC07D120X8L_L2")
                     pdf.setFont("source", 14)
                     today = date.today()
                     current_date = "Date: %s" % today
-                    pdf.drawString(80, 180, current_date)
+                    pdf.drawString(80, 150, current_date)
                     pdf.setFont("source", 14)
                     username = getpass.getuser()
                     user = "%s" % username
                     if user == "KumarDhivake":
-                        author = "Author (Department): Dhivaker Kumar (IFAG IPC DD C)"
+                        author = "Author (Department): Arnab Biswas  (IFAG IPC DD C)"
                     if user == "BiswasAr":
                         author = "Author (Department): Arnab Biswas (IFAG IPC DD C)"
                     if user == "Cotoroge":
                         author = "Author (Department): Maria Cotorogea (IFAG IPC DD C)"
-                    pdf.drawString(80, 200, author)
+                    pdf.drawString(80, 180, author)
                     pdf.showPage()
                     pdf.drawImage(logo, 450, 750, width=80, height=40, mask='auto')
                     page_num = pdf.getPageNumber()
@@ -653,13 +717,13 @@ class PlotGen:
                     pdf.setFont('source', 12)
                     pdf.drawString(100 * mm, 10 * mm, page)
                     pdf.setFont("source", 14)
-                    pdf.drawString(50, 750, "IGC11T120X12L")
+                    pdf.drawString(50, 750, self.product_name)
                     pdf.line(50, 30 * mm, 530, 30 * mm)  # bottom line
                     pdf.line(50, 745, 530, 745)
                     pdf.setFont('source', 10)
                     pdf.drawString(50, 25 * mm, "Copyright © Infineon Technologies AG 2020. All rights reserved")
                     pdf.setFont('source', 24)
-                    pdf.drawImage('model_det.png', 80, 340, width=15.92 * cm, height=12.74 * cm)
+                    pdf.drawImage(os.path.join(self.dir_out_plot,'model_det.png'), 80, 340, width=15.92 * cm, height=12.74 * cm)
                     pdf.drawCentredString(290, 690, "Model")
                     pdf.drawCentredString(290, 450, "Simulator settings")
                     pdf.drawImage('simulator_settings.png', 160,200, width=10.1 * cm, height=7.31 * cm)
@@ -683,7 +747,7 @@ class PlotGen:
                 pdf.setFont('source', 12)
                 pdf.drawString(100 * mm, 10 * mm, page)
                 pdf.setFont("source", 14)
-                pdf.drawString(50, 750, "IGC11T120X12L")
+                pdf.drawString(50, 750, self.product_name)
                 pdf.line(50, 30 * mm, 530, 30 * mm) #bottom line
                 pdf.line(50, 745, 530, 745)
                 pdf.setFont('source', 10)
@@ -693,31 +757,38 @@ class PlotGen:
         pdf.drawImage(end_page, 0, -3, width=21.15 * cm, height=30.08 * cm)
 
         pdf.save()
-        # pdf1File = open(pdf_filename, 'rb')
-        # pdf2File = open('IGC11T120X12L_P7351S_2_2.pdf', 'rb')
-        #
-        # # Read the files that you have opened
-        # pdf1Reader = PyPDF2.PdfFileReader(pdf1File)
-        # pdf2Reader = PyPDF2.PdfFileReader(pdf2File)
-        #
-        # # Create a new PdfFileWriter object which represents a blank PDF document
-        # pdfWriter = PyPDF2.PdfFileWriter()
-        #
-        # # Loop through all the pagenumbers for the first document
-        # for pageNum in range(pdf1Reader.numPages):
-        #     pageObj = pdf1Reader.getPage(pageNum)
-        #     pdfWriter.addPage(pageObj)
-        #
-        # # Loop through all the pagenumbers for the second document
-        # for pageNum in range(pdf2Reader.numPages):
-        #     pageObj = pdf2Reader.getPage(pageNum)
-        #     pdfWriter.addPage(pageObj)
-        #
-        # # Now that you have copied all the pages in both the documents, write them into the a new document
-        # pdfOutputFile = open(pdf_filename+'_merged.pdf', 'wb')
-        # pdfWriter.write(pdfOutputFile)
-        #
-        # # Close all the files - Created as well as opened
-        # pdfOutputFile.close()
-        # pdf1File.close()
-        # pdf2File.close()
+        self.merge_pdf(pdf_folder,pdf_filename)
+
+    def merge_pdf(self,pdf_folder,pdf_filename):
+        product_name  = self.product_name
+        bare_die_report = open(pdf_folder, 'rb')
+        data_sheet_path =self.dict_devices[product_name]["Data_sheet_location"]
+        data_sheet = open(data_sheet_path, 'rb')
+
+        # Read the files that you have opened
+        pdf1Reader = PyPDF2.PdfFileReader(bare_die_report)
+        pdf2Reader = PyPDF2.PdfFileReader(data_sheet)
+
+        # Create a new PdfFileWriter object which represents a blank PDF document
+        pdfWriter = PyPDF2.PdfFileWriter()
+
+        # Loop through all the pagenumbers for the first document
+        for pageNum in range(pdf1Reader.numPages):
+            pageObj = pdf1Reader.getPage(pageNum)
+            pdfWriter.addPage(pageObj)
+
+        # Loop through all the pagenumbers for the second document
+        for pageNum in range(pdf2Reader.numPages):
+            pageObj = pdf2Reader.getPage(pageNum)
+            pdfWriter.addPage(pageObj)
+
+        # Now that you have copied all the pages in both the documents, write them into the a new document
+        merged_pdf_name = 'Complete_report_'+pdf_filename
+        merged_file = open(os.path.join(self.dir_out_plot,merged_pdf_name), 'wb')
+
+        pdfWriter.write(merged_file)
+
+        # Close all the files - Created as well as opened
+        merged_file.close()
+        bare_die_report.close()
+        data_sheet.close()
