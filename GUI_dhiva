@@ -1,0 +1,330 @@
+# -*- coding: utf-8 -*-
+
+# Form implementation generated from reading ui file 'GUI_main.ui'
+#
+# Created by: PyQt5 UI code generator 5.12
+#
+# WARNING! All changes made in this file will be lost!
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit, QFileDialog, QMainWindow, QMessageBox
+from PyQt5.QtGui import QIcon
+from PlotGen import PlotGen
+
+import os
+
+
+class Ui_MainWindow(object):
+    def setupUi(self, MainWindow):
+        MainWindow.setObjectName("MainWindow")
+        MainWindow.resize(982, 933)
+        self.centralwidget = QtWidgets.QWidget(MainWindow)
+        self.centralwidget.setObjectName("centralwidget")
+        self.radio_level1 = QtWidgets.QRadioButton(self.centralwidget)
+        self.radio_level1.setGeometry(QtCore.QRect(330, 260, 51, 16))
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        self.radio_level1.setFont(font)
+        self.radio_level1.setObjectName("radio_level1")
+        self.label_2 = QtWidgets.QLabel(self.centralwidget)
+        self.label_2.setGeometry(QtCore.QRect(110, 590, 211, 41))
+        font = QtGui.QFont()
+        font.setFamily("Verdana")
+        font.setPointSize(20)
+        font.setBold(True)
+        font.setWeight(75)
+        self.label_2.setFont(font)
+        self.label_2.setObjectName("label_2")
+        self.label_7 = QtWidgets.QLabel(self.centralwidget)
+        self.label_7.setGeometry(QtCore.QRect(520, 10, 251, 111))
+        self.label_7.setText("")
+        self.label_7.setPixmap(QtGui.QPixmap("infineon_logo.png"))
+        self.label_7.setScaledContents(True)
+        self.label_7.setObjectName("label_7")
+        self.label_4 = QtWidgets.QLabel(self.centralwidget)
+        self.label_4.setGeometry(QtCore.QRect(110, 320, 181, 41))
+        font = QtGui.QFont()
+        font.setFamily("Verdana")
+        font.setPointSize(22)
+        font.setBold(True)
+        font.setWeight(75)
+        self.label_4.setFont(font)
+        self.label_4.setLocale(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.Germany))
+        self.label_4.setObjectName("label_4")
+        self.label_6 = QtWidgets.QLabel(self.centralwidget)
+        self.label_6.setGeometry(QtCore.QRect(170, 150, 561, 61))
+        font = QtGui.QFont()
+        font.setPointSize(28)
+        font.setBold(True)
+        font.setWeight(75)
+        self.label_6.setFont(font)
+        self.label_6.setObjectName("label_6")
+        self.Browse_lib = QtWidgets.QPushButton(self.centralwidget)
+        self.Browse_lib.setGeometry(QtCore.QRect(810, 600, 91, 31))
+        font = QtGui.QFont()
+        font.setPointSize(14)
+        font.setBold(True)
+        font.setWeight(75)
+        self.Browse_lib.setFont(font)
+        self.Browse_lib.setObjectName("Browse_lib")
+        self.label_8 = QtWidgets.QLabel(self.centralwidget)
+        self.label_8.setGeometry(QtCore.QRect(110, 500, 201, 41))
+        font = QtGui.QFont()
+        font.setFamily("Verdana")
+        font.setPointSize(22)
+        font.setBold(True)
+        font.setWeight(75)
+        self.label_8.setFont(font)
+        self.label_8.setObjectName("label_8")
+        self.line_product_name = QtWidgets.QLineEdit(self.centralwidget)
+        self.line_product_name.setGeometry(QtCore.QRect(340, 330, 151, 31))
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        self.line_product_name.setFont(font)
+        self.line_product_name.setText("")
+        self.line_product_name.setObjectName("line_product_name")
+        self.Browse_datasheet = QtWidgets.QPushButton(self.centralwidget)
+        self.Browse_datasheet.setGeometry(QtCore.QRect(810, 710, 91, 31))
+        font = QtGui.QFont()
+        font.setPointSize(14)
+        font.setBold(True)
+        font.setWeight(75)
+        self.Browse_datasheet.setFont(font)
+        self.Browse_datasheet.setObjectName("Browse_datasheet")
+        self.label_5 = QtWidgets.QLabel(self.centralwidget)
+        self.label_5.setGeometry(QtCore.QRect(110, 410, 181, 41))
+        font = QtGui.QFont()
+        font.setFamily("Verdana")
+        font.setPointSize(22)
+        font.setBold(True)
+        font.setWeight(75)
+        self.label_5.setFont(font)
+        self.label_5.setObjectName("label_5")
+        self.radio_level2 = QtWidgets.QRadioButton(self.centralwidget)
+        self.radio_level2.setGeometry(QtCore.QRect(420, 260, 62, 14))
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        self.radio_level2.setFont(font)
+        self.radio_level2.setObjectName("radio_level2")
+        self.line_TJmax = QtWidgets.QLineEdit(self.centralwidget)
+        self.line_TJmax.setGeometry(QtCore.QRect(340, 500, 151, 31))
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        self.line_TJmax.setFont(font)
+        self.line_TJmax.setObjectName("line_TJmax")
+        self.label_3 = QtWidgets.QLabel(self.centralwidget)
+        self.label_3.setGeometry(QtCore.QRect(110, 250, 151, 41))
+        font = QtGui.QFont()
+        font.setFamily("Verdana")
+        font.setPointSize(22)
+        font.setBold(True)
+        font.setWeight(75)
+        self.label_3.setFont(font)
+        self.label_3.setObjectName("label_3")
+        self.submit_calibStatus = QtWidgets.QPushButton(self.centralwidget)
+        self.submit_calibStatus.setGeometry(QtCore.QRect(460, 830, 201, 51))
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        self.submit_calibStatus.setFont(font)
+        self.submit_calibStatus.setObjectName("submit_calibStatus")
+        self.label = QtWidgets.QLabel(self.centralwidget)
+        self.label.setGeometry(QtCore.QRect(110, 690, 171, 51))
+        font = QtGui.QFont()
+        font.setFamily("Verdana")
+        font.setPointSize(20)
+        font.setBold(True)
+        font.setWeight(75)
+        self.label.setFont(font)
+        self.label.setObjectName("label")
+        self.line_modellib = QtWidgets.QLineEdit(self.centralwidget)
+        self.line_modellib.setGeometry(QtCore.QRect(330, 600, 471, 31))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        self.line_modellib.setFont(font)
+        self.line_modellib.setObjectName("line_modellib")
+        self.line_datasheet = QtWidgets.QLineEdit(self.centralwidget)
+        self.line_datasheet.setGeometry(QtCore.QRect(330, 710, 471, 31))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        self.line_datasheet.setFont(font)
+        self.line_datasheet.setObjectName("line_datasheet")
+        self.submit_report = QtWidgets.QPushButton(self.centralwidget)
+        self.submit_report.setGeometry(QtCore.QRect(710, 830, 171, 51))
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        self.submit_report.setFont(font)
+        self.submit_report.setObjectName("Submit_report")
+        self.combo_model_type = QtWidgets.QComboBox(self.centralwidget)
+        self.combo_model_type.setGeometry(QtCore.QRect(340, 410, 141, 31))
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        self.combo_model_type.setFont(font)
+        self.combo_model_type.setObjectName("combo_model_type")
+        self.combo_model_type.addItem("")
+        self.combo_model_type.addItem("")
+        self.combo_model_type.addItem("")
+        self.combo_model_type.addItem("")
+        self.combo_model_type.addItem("")
+        MainWindow.setCentralWidget(self.centralwidget)
+        self.statusbar = QtWidgets.QStatusBar(MainWindow)
+        self.statusbar.setObjectName("statusbar")
+        MainWindow.setStatusBar(self.statusbar)
+        self.menuBar = QtWidgets.QMenuBar(MainWindow)
+        self.menuBar.setGeometry(QtCore.QRect(0, 0, 982, 18))
+        self.menuBar.setObjectName("menuBar")
+        self.menuBARE_DIE = QtWidgets.QMenu(self.menuBar)
+        self.menuBARE_DIE.setObjectName("menuBARE_DIE")
+        MainWindow.setMenuBar(self.menuBar)
+        self.menuBar.addAction(self.menuBARE_DIE.menuAction())
+
+        self.retranslateUi(MainWindow)
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+    def retranslateUi(self, MainWindow):
+        _translate = QtCore.QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.radio_level1.setText(_translate("MainWindow", "L1"))
+        self.label_2.setText(_translate("MainWindow", "Model library path"))
+        self.label_4.setText(_translate("MainWindow", "Product name"))
+        self.label_6.setText(_translate("MainWindow", "Compact model calibration report GUI"))
+        self.Browse_lib.setText(_translate("MainWindow", "Browse"))
+        self.label_8.setText(_translate("MainWindow", "TJmax"))
+        self.Browse_datasheet.setText(_translate("MainWindow", "Browse"))
+        self.label_5.setText(_translate("MainWindow", "Model  type"))
+        self.radio_level2.setText(_translate("MainWindow", "L2"))
+        self.label_3.setText(_translate("MainWindow", "Model level"))
+        self.submit_calibStatus.setText(_translate("MainWindow", "Update calibration status "))
+        self.label.setText(_translate("MainWindow", "Datasheet path"))
+        self.submit_report.setText(_translate("MainWindow", "Complete report"))
+        self.combo_model_type.setItemText(0, _translate("MainWindow", "None"))
+        self.combo_model_type.setItemText(1, _translate("MainWindow", "L1- Simple"))
+        self.combo_model_type.setItemText(2, _translate("MainWindow", "L1 - Advanced"))
+        self.combo_model_type.setItemText(3, _translate("MainWindow", "L2 - Dambi"))
+        self.combo_model_type.setItemText(4, _translate("MainWindow", "L2 - Non-Dambi"))
+        self.menuBARE_DIE.setTitle(_translate("MainWindow", "BARE DIE"))
+        self.Browse_lib.clicked.connect(self.pushButton_Browse_lib)
+        self.Browse_datasheet.clicked.connect(self.pushButton_datasheet_lib)
+        self.submit_calibStatus.clicked.connect(self.pushButton_calibstatus)
+        self.submit_report.clicked.connect(self.pushButton_compReport)
+        self.line_datasheet.text()
+        self.line_modellib.text()
+        self.radio_level1.isChecked()
+        self.radio_level2.isChecked()
+        self.line_product_name.text()
+
+
+    def pushButton_Browse_lib(self):
+        filename = QFileDialog.getOpenFileName()
+        model_path = filename[0]
+        self.line_modellib.setText(model_path)
+
+    def pushButton_datasheet_lib(self):
+        filename = QFileDialog.getOpenFileName()
+        datasheet_path = filename[0]
+        self.line_datasheet.setText(datasheet_path)
+
+    def pushButton_compReport(self):
+        self.report_message()
+        model_level = ""
+        # print(self.line_modellib.text())
+        # print(self.line_datasheet.text())
+        # print(self.line_product_name.text())
+        # print(self.line_TJmax.text())
+        if self.radio_level1.isChecked() == True:
+            model_level = "L1"
+        if self.radio_level2.isChecked() == True:
+            model_level = "L2"
+        print(self.combo_model_type.currentText())
+        product_name = self.line_product_name.text()
+        model_loc = self.line_modellib.text()
+        datasheet_loc = self.line_datasheet.text()
+        model_type = self.combo_model_type.currentText()
+        hot_temp = self.line_TJmax.text()
+        try:
+            excel_file = open("PDF_data_input.xlsx", "r+")
+        except IOError:
+            self.excel_openerror()
+            QtCore.QCoreApplication.instance().quit()
+        plot_gen = PlotGen("PDF_data_input.xlsx", product_name, model_loc, datasheet_loc, model_type, hot_temp, model_level)
+        plot_gen.complete_report()
+        self.end_message()
+        QtCore.QCoreApplication.instance().quit()
+
+    def excel_openerror(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+
+        msg.setText("Please save and close the device info excel sheet")
+        msg.setWindowTitle("Excel open error message")
+        msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        retval = msg.exec_()
+        print("value of pressed message box button:", retval)
+
+    def calib_message(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+
+        msg.setText("Calibration status started running")
+        msg.setInformativeText("Please do some meditation and wait for sometime")
+        msg.setWindowTitle("Code progress")
+        msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        retval = msg.exec_()
+        print("value of pressed message box button:", retval)
+
+    def report_message(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+
+        msg.setText("Report generation started running")
+        msg.setInformativeText("Please do some meditation and wait for sometime")
+        msg.setWindowTitle("Code progress")
+        msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        retval = msg.exec_()
+        print("value of pressed message box button:", retval)
+
+    def end_message(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+
+        msg.setText("Finished running successfully")
+        msg.setInformativeText("Please check output folder/Excel sheet for results")
+        msg.setWindowTitle("Code completion")
+        msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        retval = msg.exec_()
+        # print("value of pressed message box button:", retval)
+
+    def pushButton_calibstatus(self):
+        self.calib_message()
+        model_level = ""
+        # print(self.line_modellib.text())
+        # print(self.line_datasheet.text())
+        # print(self.line_product_name.text())
+        # print(self.line_TJmax.text())
+        if self.radio_level1.isChecked() == True:
+            model_level = "L1"
+        if self.radio_level2.isChecked() == True:
+            model_level = "L2"
+        print(self.combo_model_type.currentText())
+        product_name = self.line_product_name.text()
+        model_loc = self.line_modellib.text()
+        datasheet_loc = self.line_datasheet.text()
+        model_type = self.combo_model_type.currentText()
+        hot_temp = self.line_TJmax.text()
+        plot_gen = PlotGen("PDF_data_input.xlsx",product_name,model_loc,datasheet_loc,model_type,hot_temp,model_level)
+        plot_gen.update_calibration_status()
+        self.end_message()
+        QtCore.QCoreApplication.instance().quit()
+
+
+if __name__ == "__main__":
+        import sys
+
+        app = QtWidgets.QApplication(sys.argv)
+        Form = QMainWindow()
+        ui = Ui_MainWindow()
+        ui.setupUi(Form)
+        Form.show()
+        sys.exit(app.exec_())
+
+
